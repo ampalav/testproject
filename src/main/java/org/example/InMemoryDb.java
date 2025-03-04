@@ -27,18 +27,26 @@ public class InMemoryDb implements InMemoryDbInterface {
     @Override
     public void set(String key, String value) {
         if (!transactions.isEmpty()) {
+            // Transaction Mode: Store changes in transaction stack
             transactions.peek().put(key, value);
             transactionsCount.peek().put(key, databaseCount.getOrDefault(key, 0) + 1);
         } else {
+            // Normal Mode: Update database
             String oldValue = databaseNode.get(key);
-            if (oldValue != null) {
-                databaseCount.put(key, databaseCount.getOrDefault(key, 0) + 1);
-            }
-            databaseNode.put(key, value);
-            databaseCount.put(key, databaseCount.getOrDefault(key, 0) + 1);
-        }
 
+            if (oldValue == null) {
+                // New key-value pair
+                databaseCount.put(key, 1);
+            } else if (!oldValue.equals(value)) {
+                // Value changed, update count correctly
+                databaseCount.put(key, databaseCount.getOrDefault(key, 0)+1); // Keep count same (no extra increment)
+            }
+
+            databaseNode.put(key, value);
+        }
     }
+
+
 
     @Override
     public void begin() {
